@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Optional
 
 
-DATA_PATH = Path(__file__).resolve().parents[2] / "student_data.json"
+DATA_PATH = Path(__file__).resolve().parents[3] / "student_data.json"
 
 
 @dataclass

@@ -72,14 +72,34 @@ class StudentCardView(QFrame):
         self.photo_label.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
         self.photo_label.installEventFilter(self)
 
+        # Prepare container for editable fields to allow updates from persisted data
+        self._editable_fields = {}
+        # Load persisted data on startup (if any)
+        persisted = None
+        try:
+            from school_app.persistence.json_store import load_student
+            persisted = load_student()
+        except Exception:
+            persisted = None
         # Editable fields for inline editing + persistence
         def _on_update(field_name, new_value):
             setattr(student, field_name, new_value)
+            # Preserve any existing photo_path from last persisted state or UI
+            try:
+                from school_app.persistence.json_store import load_student as _load
+            except Exception:
+                _load = None
+            photo_path = getattr(self, "_photo_path", None)
+            if _load:
+                last = _load()
+                if last and getattr(last, "photo_path", None):
+                    photo_path = last.photo_path
             persisted = PersistedStudent(
                 school=student.school,
                 name=student.name,
                 grade=student.grade,
                 city=student.city,
+                photo_path=photo_path,
             )
             try:
                 save_student(persisted)
@@ -92,9 +112,36 @@ class StudentCardView(QFrame):
             ("Класс", student.grade, 'grade'),
             ("Город", student.city, 'city'),
         ]
-        for label_text, value, field in fields:
-            ef = EditableField(label_text, value, _on_update)
+        for label_text, value, field_key in fields:
+            ef = EditableField(label_text, value, _on_update, field_key=field_key)
+            ef.edited.connect(_on_update)
+            self._editable_fields[field_key] = ef
             layout.addWidget(ef)
+
+        # Apply persisted values to UI fields if available
+        if persisted:
+            try:
+                if 'school' in self._editable_fields:
+                    self._editable_fields['school'].set_value(persisted.school)
+                if 'name' in self._editable_fields:
+                    self._editable_fields['name'].set_value(persisted.name)
+                if 'grade' in self._editable_fields:
+                    self._editable_fields['grade'].set_value(persisted.grade)
+                if 'city' in self._editable_fields:
+                    self._editable_fields['city'].set_value(persisted.city)
+                if getattr(persisted, 'photo_path', None):
+                    pp = Path(str(persisted.photo_path))
+                    if pp.exists():
+                        pix = self.image_repo.load_photo(pp)
+                        if pix:
+                            scaled = pix.scaled(
+                                120, 120,
+                                Qt.AspectRatioMode.KeepAspectRatio,
+                                Qt.TransformationMode.SmoothTransformation
+                            )
+                            self.photo_label.setPixmap(scaled)
+            except Exception:
+                pass
 
         layout.addStretch()
         self.setLayout(layout)
