@@ -1,0 +1,4 @@
+from school_app.presentation.views.header_view import HeaderView
+from school_app.presentation.views.student_card_view import StudentCardView
+from school_app.presentation.views.info_panel_view import InfoPanelView
+from school_app.presentation.views.nav_bar_view import NavBarView

@@ -1,0 +1,1 @@
+from school_app.infrastructure.image_loader import QtImageLoader
