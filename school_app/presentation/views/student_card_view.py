@@ -8,6 +8,8 @@ from PyQt6.QtCore import Qt
 
 from school_app.domain.entities import Student
 from school_app.domain.repository import ImageRepository
+from school_app.presentation.views.editable_field import EditableField
+from school_app.persistence.json_store import PersistedStudent, save_student
 
 
 class StudentCardView(QFrame):
@@ -62,23 +64,29 @@ class StudentCardView(QFrame):
         divider.setObjectName("divider")
         layout.addWidget(divider)
 
-        for label_text, value in [
-            ("Школа:", student.school),
-            ("Ученик:", student.name),
-            ("Класс:", student.grade),
-            ("Город:", student.city),
-        ]:
-            row = QHBoxLayout()
+        # Editable fields for inline editing + persistence
+        def _on_update(field_name, new_value):
+            setattr(student, field_name, new_value)
+            persisted = PersistedStudent(
+                school=student.school,
+                name=student.name,
+                grade=student.grade,
+                city=student.city,
+            )
+            try:
+                save_student(persisted)
+            except Exception:
+                pass
 
-            lbl = QLabel(label_text)
-            lbl.setObjectName("field-label")
-            row.addWidget(lbl)
-
-            val = QLabel(value)
-            val.setObjectName("field-value")
-            row.addWidget(val, stretch=1)
-
-            layout.addLayout(row)
+        fields = [
+            ("Школа", student.school, 'school'),
+            ("Ученик", student.name, 'name'),
+            ("Класс", student.grade, 'grade'),
+            ("Город", student.city, 'city'),
+        ]
+        for label_text, value, field in fields:
+            ef = EditableField(label_text, value, _on_update)
+            layout.addWidget(ef)
 
         layout.addStretch()
         self.setLayout(layout)
