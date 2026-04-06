@@ -1,6 +1,10 @@
 # Changelog
 
-## 1.1.1 (2026-04-07)
+-## 1.1.1 (2026-04-07)
+- Fix: ensure both text fields (school, name, grade, city) and photo_path are persisted together in student_data.json.
+- Load persisted photo on startup in UI and save photo paths when a new photo is uploaded.
+## 1.1.2 (2026-04-07)
+- Fix: ensure persistence for text fields and photo_path is kept together on save; load photo_path on startup reliably.
 - Fix: ensure both text fields (school, name, grade, city) and photo_path are persisted together in student_data.json.
 - Load persisted photo on startup in UI and save photo paths when a new photo is uploaded.
 
