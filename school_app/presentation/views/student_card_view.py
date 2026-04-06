@@ -4,7 +4,8 @@ from pathlib import Path
 from typing import Optional
 
 from PyQt6.QtWidgets import QFrame, QVBoxLayout, QHBoxLayout, QLabel
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QEvent
+from PyQt6.QtGui import QCursor
 
 from school_app.domain.entities import Student
 from school_app.domain.repository import ImageRepository
@@ -64,6 +65,13 @@ class StudentCardView(QFrame):
         divider.setObjectName("divider")
         layout.addWidget(divider)
 
+        # Make photo area clickable to load a new image
+        self.image_repo = image_repo
+        self._student = student
+        self._photo_path = image_path if image_path else None
+        self.photo_label.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        self.photo_label.installEventFilter(self)
+
         # Editable fields for inline editing + persistence
         def _on_update(field_name, new_value):
             setattr(student, field_name, new_value)
@@ -90,3 +98,42 @@ class StudentCardView(QFrame):
 
         layout.addStretch()
         self.setLayout(layout)
+
+    def eventFilter(self, obj, event):
+        if obj is self.photo_label and event.type() == QEvent.Type.MouseButtonPress:
+            self._open_photo_dialog()
+            return True
+        return super().eventFilter(obj, event)
+
+    def _open_photo_dialog(self, event=None):
+        # Lazy import to avoid hard GUI dependency when testing non-GUI paths
+        try:
+            from PyQt6.QtWidgets import QFileDialog
+        except Exception:
+            return
+        from pathlib import Path
+        path, _ = QFileDialog.getOpenFileName(self, "Выбрать фото ученика", "", "Images (*.png *.jpg *.jpeg *.bmp)")
+        if not path:
+            return
+        p = Path(path)
+        self._photo_path = p
+        pix = self.image_repo.load_photo(p)
+        if pix:
+            scaled = pix.scaled(
+                120, 120,
+                Qt.AspectRatioMode.KeepAspectRatio,
+                Qt.TransformationMode.SmoothTransformation
+            )
+            self.photo_label.setPixmap(scaled)
+        # Persist path
+        try:
+            persisted = PersistedStudent(
+                school=self._student.school,
+                name=self._student.name,
+                grade=self._student.grade,
+                city=self._student.city,
+                photo_path=str(p),
+            )
+            save_student(persisted)
+        except Exception:
+            pass

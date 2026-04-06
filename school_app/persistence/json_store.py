@@ -16,6 +16,7 @@ class PersistedStudent:
     name: str
     grade: str
     city: str
+    photo_path: Optional[str] = None
 
 
 def load_student() -> Optional[PersistedStudent]:
